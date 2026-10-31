@@ -1,5 +1,7 @@
 # Corn Land
 
+![The Corn Land page on its corn slide: a large corn kernel between the letters CO and RN on an amber background, with an eggplant and a carrot beside it](docs/demo.png)
+
 A one-page website about three vegetables. Corn, eggplant and carrot float in 3D, and each one has its own background color and a short nutrition introduction.
 
 Use the arrows to swap the vegetable in the center. The page changes color with it, and **Discover it** opens the full nutrition table. Every figure is per 100 g, raw, from [USDA FoodData Central](https://fdc.nal.usda.gov/).
