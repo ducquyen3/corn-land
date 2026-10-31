@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Corn Land</title>
+  <meta name="description" content="Corn Land is a family corn farm: sweet corn picked at dawn all summer, and an eight-acre corn maze through the autumn.">
+  <meta name="theme-color" content="#133621">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #133621;
+      --surface: #1a4429;
+      --surface-2: #225234;
+      --ink: #f4d96c;
+      --muted: #b3a55e;
+      --accent: #f4d96c;
+      --accent-hover: #f9e597;
+      --accent-ink: #133621;
+
+      --font: "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+      --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+      --step-display: clamp(3.5rem, 7.4vw, 8.5rem);
+
+      --margin: 16px;
+      --pad: clamp(24px, 3.2vw, 48px);
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* The one shape on this page: a corn kernel seen face-on. */
+      --kernel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 0C82 0 99 4 99.6 24C100.4 50 92 76 74 92C64 100 56 100 50 100C44 100 36 100 26 92C8 76-.4 50 .4 24C1 4 18 0 50 0Z'/%3E%3C/svg%3E");
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: var(--step-body);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    h1, h2, p, ul { margin: 0; }
+    ::selection { background: var(--ink); color: var(--bg); }
+
+    .kernel-mask {
+      -webkit-mask: var(--kernel) center / 100% 100% no-repeat;
+              mask: var(--kernel) center / 100% 100% no-repeat;
+    }
+
+    /* ---------- Frame ---------- */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--margin);
+      padding: var(--margin);
+      min-height: 100svh;
+    }
+
+    /* ---------- The card ---------- */
+    .card {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      padding: 0 var(--pad) var(--pad);
+      min-width: 0;
+    }
+    .cob {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      height: 64px;
+      margin-inline: calc(var(--pad) * -1);
+      overflow: hidden;
+    }
+    .cob span {
+      flex: none;
+      width: 26px;
+      height: 38px;
+      background: var(--accent);
+      transition: transform 220ms var(--ease-out);
+    }
+    .cob span:hover { transform: translateY(4px) scale(1.12); }
+
+    h1 {
+      margin-top: clamp(32px, 6vh, 64px);
+      font-size: var(--step-display);
+      font-weight: 700;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+    }
+    .lead {
+      margin-top: clamp(20px, 3.4vh, 32px);
+      max-width: 30ch;
+      font-size: var(--step-lead);
+      line-height: 1.3;
+    }
+    .actions {
+      margin-top: clamp(24px, 4.4vh, 40px);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65em;
+      min-height: 56px;
+      padding: 0 28px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font: 500 var(--step-body) / 1 var(--font);
+      text-decoration: none;
+      transition: background-color 160ms ease, transform 180ms var(--ease-out);
+    }
+    .btn svg { width: 18px; height: 18px; transition: transform 180ms var(--ease-out); }
+    .btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+    .btn:hover svg { transform: translateX(3px); }
+    .btn:active { transform: translateY(0) scale(0.98); transition-duration: 80ms; }
+    .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+
+    /* ---------- Today at the farm (the live index) ---------- */
+    .today { margin-top: auto; padding-top: clamp(32px, 5vh, 56px); }
+    .today__head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0 16px;
+      margin-bottom: 8px;
+    }
+    .today__head h2 { font-size: var(--step-body); font-weight: 500; line-height: 1.3; }
+    .today__date { font-size: var(--step-body); }
+    .rows { list-style: none; padding: 0; margin-inline: -12px; }
+    .row {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 200ms ease;
+    }
+    .row__thumb {
+      width: 52px;
+      height: 62px;
+      object-fit: cover;
+      transition: transform 240ms var(--ease-out);
+    }
+    .row__top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0 16px;
+    }
+    .row__name { font-size: var(--step-lead); font-weight: 500; line-height: 1.2; }
+    .row__status { font-weight: 500; display: inline-flex; align-items: baseline; gap: 8px; }
+    .row__status::before {
+      content: "";
+      align-self: center;
+      width: 9px;
+      height: 12px;
+      background: var(--accent);
+      -webkit-mask: var(--kernel) center / 100% 100% no-repeat;
+              mask: var(--kernel) center / 100% 100% no-repeat;
+      display: none;
+    }
+    .row__status.is-open::before { display: block; }
+    .row__desc { display: block; }
+    .row:hover, .row[aria-pressed="true"] { background: var(--surface-2); }
+    .row:hover .row__thumb, .row:focus-visible .row__thumb { transform: scale(1.08); }
+    .row:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+
+    /* ---------- The giant kernel ---------- */
+    .stage {
+      display: flex;
+      justify-content: center;
+      min-width: 0;
+    }
+    .kernel-box {
+      position: relative;
+      height: 100%;
+      aspect-ratio: 0.82;
+      max-width: 100%;
+    }
+    .frame {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .drift { position: absolute; inset: 0; }
+    .frame img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      filter: brightness(0.62) saturate(0.85);
+      transition: opacity 240ms ease;
+    }
+    .frame img.is-on { opacity: 1; }
+    .ear {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 700ms ease;
+      cursor: grab;
+      touch-action: pan-y;
+    }
+    .ear.is-ready { opacity: 1; }
+    .ear.is-dragging { cursor: grabbing; }
+    .caption {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 24%;
+      font-size: var(--step-small);
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    /* ---------- Credits ---------- */
+    .credits {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px 32px;
+      padding: 8px var(--margin) 24px;
+      font-size: var(--step-small);
+      color: var(--muted);
+    }
+    .credits p { max-width: 64ch; }
+    .credits a { color: inherit; text-underline-offset: 2px; }
+    .credits a:hover { color: var(--ink); }
+
+    /* ---------- Phone and tablet: picture first, card under it ---------- */
+    @media (max-width: 899px) {
+      .hero { grid-template-columns: 1fr; min-height: 0; }
+      .stage { order: -1; }
+      .kernel-box {
+        height: min(58svh, calc((100vw - 2 * var(--margin)) / 0.82));
+        max-width: none;
+      }
+      .caption { display: none; }
+      .cob { height: 52px; }
+      .cob span { width: 22px; height: 32px; }
+      h1 { font-size: clamp(3.25rem, 15vw, 7rem); margin-top: 28px; }
+      .btn { width: 100%; justify-content: center; }
+      .today { padding-top: 40px; }
+    }
+
+    /* ---------- Motion ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      .cob span {
+        animation: kernel-in 560ms var(--ease-out) both;
+        animation-delay: calc(var(--i) * 22ms + 100ms);
+      }
+      .rise {
+        animation: rise 760ms var(--ease-out) both;
+        animation-delay: var(--d, 0ms);
+      }
+      .kernel-box .frame { animation: frame-in 1200ms var(--ease-out) 80ms both; }
+      .drift { animation: drift 28s ease-in-out 1.3s infinite alternate; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rise, .cob span, .kernel-box .frame { animation: fade 400ms ease both; }
+      .btn, .btn svg, .row__thumb, .cob span { transition-property: background-color, opacity; }
+    }
+    @keyframes kernel-in { from { opacity: 0; transform: translateY(-18px) scale(0.5); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+    @keyframes frame-in { from { opacity: 0; transform: scale(0.94) translateY(16px); } }
+    @keyframes drift { to { transform: scale(1.08) translateY(-1.5%); } }
+    @keyframes fade { from { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <main class="hero">
+    <div class="card">
+      <div class="cob" aria-hidden="true">
+        <span class="kernel-mask" style="--i:0"></span><span class="kernel-mask" style="--i:1"></span><span class="kernel-mask" style="--i:2"></span><span class="kernel-mask" style="--i:3"></span><span class="kernel-mask" style="--i:4"></span><span class="kernel-mask" style="--i:5"></span><span class="kernel-mask" style="--i:6"></span><span class="kernel-mask" style="--i:7"></span><span class="kernel-mask" style="--i:8"></span><span class="kernel-mask" style="--i:9"></span><span class="kernel-mask" style="--i:10"></span><span class="kernel-mask" style="--i:11"></span><span class="kernel-mask" style="--i:12"></span><span class="kernel-mask" style="--i:13"></span><span class="kernel-mask" style="--i:14"></span><span class="kernel-mask" style="--i:15"></span><span class="kernel-mask" style="--i:16"></span><span class="kernel-mask" style="--i:17"></span><span class="kernel-mask" style="--i:18"></span><span class="kernel-mask" style="--i:19"></span><span class="kernel-mask" style="--i:20"></span><span class="kernel-mask" style="--i:21"></span><span class="kernel-mask" style="--i:22"></span><span class="kernel-mask" style="--i:23"></span><span class="kernel-mask" style="--i:24"></span><span class="kernel-mask" style="--i:25"></span><span class="kernel-mask" style="--i:26"></span><span class="kernel-mask" style="--i:27"></span><span class="kernel-mask" style="--i:28"></span><span class="kernel-mask" style="--i:29"></span><span class="kernel-mask" style="--i:30"></span><span class="kernel-mask" style="--i:31"></span><span class="kernel-mask" style="--i:32"></span><span class="kernel-mask" style="--i:33"></span><span class="kernel-mask" style="--i:34"></span><span class="kernel-mask" style="--i:35"></span>
+      </div>
+
+      <h1 class="rise" style="--d:180ms">Corn Land</h1>
+      <p class="lead rise" style="--d:260ms">A family corn farm on County Road 9. Sweet corn picked at dawn all summer, and an eight-acre maze to get lost in until November.</p>
+      <div class="actions rise" style="--d:340ms">
+        <a class="btn" href="mailto:hello@cornland.farm?subject=Booking%20the%20corn%20maze&amp;body=Hello%20Corn%20Land%2C%0A%0AWe%20would%20like%20to%20walk%20the%20maze%20on%20(day)%20with%20(number)%20people.%0A%0AThank%20you">
+          Book the maze
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11m-4.5-4.5L15 10l-4.5 4.5" stroke="currentColor" stroke-width="2"/></svg>
+        </a>
+      </div>
+
+      <section class="today" aria-labelledby="today-title">
+        <div class="today__head rise" style="--d:420ms">
+          <h2 id="today-title">Today at the farm</h2>
+          <span class="today__date" data-today></span>
+        </div>
+        <ul class="rows">
+          <li class="rise" style="--d:480ms">
+            <button class="row" type="button" data-pic="stand" aria-pressed="false">
+              <img class="row__thumb kernel-mask" src="assets/wisconsin-sweet-corn-june-2026.jpg" alt="" width="1920" height="2560">
+              <span>
+                <span class="row__top">
+                  <span class="row__name">Farm stand</span>
+                  <span class="row__status" data-status="stand">July to September</span>
+                </span>
+                <span class="row__desc">Sweet corn picked at 5&nbsp;am and gone by noon. Daily, 8&nbsp;am to 6&nbsp;pm.</span>
+              </span>
+            </button>
+          </li>
+          <li class="rise" style="--d:540ms">
+            <button class="row" type="button" data-pic="maze" aria-pressed="false">
+              <img class="row__thumb kernel-mask" src="assets/inside-a-corn-maze-near-christchurch-new.jpg" alt="" width="1920" height="2560">
+              <span>
+                <span class="row__top">
+                  <span class="row__name">Corn maze</span>
+                  <span class="row__status" data-status="maze">September to 1 November</span>
+                </span>
+                <span class="row__desc">Eight acres with a new path cut every year. Daily, 10&nbsp;am to 6&nbsp;pm.</span>
+              </span>
+            </button>
+          </li>
+          <li class="rise" style="--d:600ms">
+            <button class="row" type="button" data-pic="rides" aria-pressed="false">
+              <img class="row__thumb kernel-mask" src="assets/grand-isle-vt-cornfield-20220910.jpg" alt="" width="1920" height="1280">
+              <span>
+                <span class="row__top">
+                  <span class="row__name">Hayrides</span>
+                  <span class="row__status" data-status="rides">October weekends</span>
+                </span>
+                <span class="row__desc">Round the cut field on the old flatbed. Saturday and Sunday, 11&nbsp;am to 4&nbsp;pm.</span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <figure class="stage" style="margin:0">
+      <div class="kernel-box">
+        <div class="frame kernel-mask">
+          <div class="drift">
+            <img class="is-on" data-key="field" src="assets/cornfield-6262.jpg" width="1920" height="1440" style="object-position:46% 50%"
+                 alt="A wall of tall green corn with tassels against a blue summer sky" fetchpriority="high">
+            <img data-key="stand" src="assets/wisconsin-sweet-corn-june-2026.jpg" width="1920" height="2560"
+                 alt="Eight ears of husked yellow and white sweet corn in a metal tray">
+            <img data-key="maze" src="assets/inside-a-corn-maze-near-christchurch-new.jpg" width="1920" height="2560" style="object-position:50% 70%"
+                 alt="A narrow dirt path running between two high walls of corn">
+            <img data-key="rides" src="assets/grand-isle-vt-cornfield-20220910.jpg" width="1920" height="1280" style="object-position:62% 50%"
+                 alt="A harvested cornfield of golden stubble with trees and blue hills behind">
+          </div>
+        </div>
+        <canvas class="ear" role="img" aria-label="A 3D ear of sweet corn with its husk peeled back, slowly turning. Drag sideways to spin it."></canvas>
+        <figcaption class="caption" data-caption>Corn at full height, late summer.</figcaption>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="credits">
+    <p>Photographs from Wikimedia Commons by
+      <a href="https://commons.wikimedia.org/wiki/File:Cornfield_6262.jpg">Chris Light</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Wisconsin_sweet_corn_June_2026.jpg">Heidi Meudt</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Grand_Isle_VT_Cornfield_20220910.jpg">Niranjan Arminius</a> (CC BY-SA 4.0) and
+      <a href="https://commons.wikimedia.org/w/index.php?curid=30724285">Hugho226</a> (CC0).
+    </p>
+    <p>© 2026 Corn Land</p>
+  </footer>
+
+  <script>
+    (() => {
+      // Seasons and hours: month/day ranges, weekdays (0 = Sunday), opening and closing hour.
+      const schedule = {
+        stand: { from: [7, 1], to: [9, 30], days: [0, 1, 2, 3, 4, 5, 6], open: 8, close: 18 },
+        maze:  { from: [9, 1], to: [11, 1], days: [0, 1, 2, 3, 4, 5, 6], open: 10, close: 18 },
+        rides: { from: [10, 1], to: [11, 1], days: [0, 6], open: 11, close: 16 },
+      };
+      const captions = {
+        field: 'Corn at full height, late summer.',
+        stand: 'Sweet corn, husked and ready for the pot.',
+        maze: 'A path between the walls of a corn maze.',
+        rides: 'A cornfield after the harvest.',
+      };
+
+      const inSeason = (d, s) => {
+        const v = (d.getMonth() + 1) * 100 + d.getDate();
+        return v >= s.from[0] * 100 + s.from[1] && v <= s.to[0] * 100 + s.to[1];
+      };
+      const hour = h => `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`;
+      const weekday = d => d.toLocaleDateString('en-GB', { weekday: 'long' });
+      const dayMonth = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+
+      function status(now, s) {
+        for (let i = 0; i < 400; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+          if (!inSeason(d, s) || !s.days.includes(d.getDay())) continue;
+          const open = new Date(d); open.setHours(s.open, 0, 0, 0);
+          const close = new Date(d); close.setHours(s.close, 0, 0, 0);
+          if (now < open) {
+            if (i === 0) return { text: `Opens today at ${hour(s.open)}` };
+            if (i === 1) return { text: `Opens tomorrow at ${hour(s.open)}` };
+            if (i < 7) return { text: `Opens ${weekday(d)} at ${hour(s.open)}` };
+            return { text: `Back on ${dayMonth(d)}` };
+          }
+          if (now < close) {
+            const mins = Math.ceil((close - now) / 60000);
+            const left = mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h ${mins % 60} min`;
+            return { text: `Open now, ${left} left`, open: true };
+          }
+        }
+        return { text: 'Closed' };
+      }
+
+      const dateEl = document.querySelector('[data-today]');
+      function tick() {
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        document.querySelectorAll('[data-status]').forEach(el => {
+          const st = status(now, schedule[el.dataset.status]);
+          el.textContent = st.text;
+          el.classList.toggle('is-open', !!st.open);
+        });
+      }
+      tick();
+      setInterval(tick, 30000);
+
+      // The index: pointing at, focusing or tapping a row puts its picture in the big kernel.
+      const pictures = document.querySelectorAll('.frame img');
+      const caption = document.querySelector('[data-caption]');
+      const rows = document.querySelectorAll('.row');
+      let pinned = 'field';
+      const show = key => {
+        pictures.forEach(img => img.classList.toggle('is-on', img.dataset.key === key));
+        caption.textContent = captions[key];
+      };
+      rows.forEach(row => {
+        row.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') show(row.dataset.pic); });
+        row.addEventListener('focus', () => show(row.dataset.pic));
+        row.addEventListener('click', () => {
+          pinned = pinned === row.dataset.pic ? 'field' : row.dataset.pic;
+          rows.forEach(r => r.setAttribute('aria-pressed', String(r.dataset.pic === pinned)));
+          show(pinned);
+        });
+      });
+      document.querySelector('.rows').addEventListener('pointerleave', () => show(pinned));
+      rows.forEach(row => row.addEventListener('blur', () => show(pinned)));
+    })();
+  </script>
+
+  <script type="module">
+    // The 3D ear of corn over the big kernel. Without WebGL or the library, the photo stands alone.
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const canvas = document.querySelector('.ear');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function build() {
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+
+      scene.add(new THREE.HemisphereLight(0xfff3d1, 0x173d24, 1.5));
+      const key = new THREE.DirectionalLight(0xfff0c8, 2.6);
+      key.position.set(-5, 6, 8);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0xcfe8ff, 1.4);
+      rim.position.set(6, -1, -6);
+      scene.add(rim);
+
+      const ear = new THREE.Group();
+      const LENGTH = 4.2, RADIUS = 0.7, ROWS = 16, PER_ROW = 32;
+      const base = -LENGTH / 2;
+      // Full at the butt, tapering to a rounded tip.
+      const radiusAt = t => RADIUS * (0.84 + 0.16 * Math.sin(Math.min(t * 8, 1) * Math.PI / 2)) * (1 - 0.58 * Math.pow(t, 2.4));
+
+      // Kernels: sixteen rows, as on a real ear (always an even number).
+      const kernelGeo = new THREE.SphereGeometry(1, 14, 10);
+      const kernelMat = new THREE.MeshPhysicalMaterial({ roughness: 0.34, clearcoat: 0.35, clearcoatRoughness: 0.4 });
+      const kernels = new THREE.InstancedMesh(kernelGeo, kernelMat, ROWS * PER_ROW);
+      const golds = [0xf2c64a, 0xf4cf58, 0xf6d86c, 0xf3cb50];
+      const pale = 0xfaedbf;
+      const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
+      let n = 0;
+      for (let row = 0; row < ROWS; row++) {
+        const rowShift = (row % 2 ? 0.035 : -0.035);
+        for (let j = 0; j < PER_ROW; j++) {
+          const t = (j + 0.5) / PER_ROW;
+          const r = radiusAt(t);
+          const theta = (row / ROWS) * Math.PI * 2 + rowShift + (Math.random() - 0.5) * 0.03;
+          const ds = LENGTH / PER_ROW;
+          const jitter = 0.94 + Math.random() * 0.1;
+          const centre = r - 0.06;
+          p.set(Math.cos(theta) * centre, base + (j + 0.5) * ds, Math.sin(theta) * centre);
+          q.setFromAxisAngle(up, -theta);
+          s.set(0.17 * (r / RADIUS) * jitter, ds * 0.52 * jitter, (Math.PI * 2 * r / ROWS) * 0.45 * jitter);
+          m.compose(p, q, s);
+          kernels.setMatrixAt(n, m);
+          kernels.setColorAt(n, c.setHex(Math.random() < 0.24 ? pale : golds[(Math.random() * golds.length) | 0]));
+          n++;
+        }
+      }
+      ear.add(kernels);
+
+      // The cob underneath, seen only in the gaps.
+      const profile = [];
+      for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        profile.push(new THREE.Vector2(Math.max(0.01, radiusAt(t) - 0.1), base + t * LENGTH));
+      }
+      profile.push(new THREE.Vector2(0.01, base + LENGTH + 0.04));
+      ear.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 32), new THREE.MeshStandardMaterial({ color: 0xb98a2a, roughness: 0.8 })));
+
+      // Husk leaves, peeled back from the butt and drying to straw at the tips.
+      const huskMat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.72 });
+      const green = new THREE.Color(0x3f8a3c), mid = new THREE.Color(0x8cb650), straw = new THREE.Color(0xe2d48a);
+      const LEAVES = 7, NU = 7, NV = 30;
+      for (let k = 0; k < LEAVES; k++) {
+        const phi = (k / LEAVES) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+        const len = 2.6 + Math.random() * 0.8;
+        const width = 0.72 + Math.random() * 0.2;
+        const dirR = new THREE.Vector3(Math.cos(phi), 0, Math.sin(phi));
+        const dirT = new THREE.Vector3(-Math.sin(phi), 0, Math.cos(phi));
+        const positions = [], colors = [], index = [];
+        for (let iv = 0; iv <= NV; iv++) {
+          const v = iv / NV;
+          const radial = RADIUS * 0.82 + len * (0.32 * v + 0.2 * v * v);
+          const axial = base + 0.45 - len * (0.86 * v - 0.12 * v * v);
+          const w = width * Math.pow(Math.sin(Math.PI * Math.min(1, 0.14 + v * 0.86)), 0.75) * (1 - 0.35 * v);
+          const sway = 0.18 * Math.sin(v * 3 + k) * v;
+          const col = v < 0.55 ? green.clone().lerp(mid, v / 0.55) : mid.clone().lerp(straw, (v - 0.55) / 0.45);
+          // Each leaf twists along its length, alternating direction.
+          const twist = v * 0.9 * (k % 2 ? 1 : -1);
+          const across = dirT.clone().multiplyScalar(Math.cos(twist)).addScaledVector(dirR, Math.sin(twist));
+          const out = dirR.clone().multiplyScalar(Math.cos(twist)).addScaledVector(dirT, -Math.sin(twist));
+          for (let iu = 0; iu <= NU; iu++) {
+            const u = iu / NU - 0.5;
+            const cup = 0.24 * (2 * u) * (2 * u) * w;
+            const pt = dirR.clone().multiplyScalar(radial)
+              .addScaledVector(across, u * w)
+              .addScaledVector(out, cup)
+              .addScaledVector(dirT, sway)
+              .add(new THREE.Vector3(0, axial, 0));
+            positions.push(pt.x, pt.y, pt.z);
+            colors.push(col.r, col.g, col.b);
+          }
+        }
+        for (let iv = 0; iv < NV; iv++) {
+          for (let iu = 0; iu < NU; iu++) {
+            const a = iv * (NU + 1) + iu, b = a + NU + 1;
+            index.push(a, b, a + 1, b, b + 1, a + 1);
+          }
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geo.setIndex(index);
+        geo.computeVertexNormals();
+        ear.add(new THREE.Mesh(geo, huskMat));
+      }
+
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.8, 18), new THREE.MeshStandardMaterial({ color: 0x5f7f34, roughness: 0.8 }));
+      stem.position.y = base - 0.3;
+      ear.add(stem);
+
+      // A few strands of silk out of the tip.
+      const silkMat = new THREE.MeshStandardMaterial({ color: 0xc39553, roughness: 0.9 });
+      const tip = base + LENGTH;
+      for (let i = 0; i < 16; i++) {
+        const a = Math.random() * Math.PI * 2, spread = 0.25 + Math.random() * 0.35;
+        const dx = Math.cos(a) * spread, dz = Math.sin(a) * spread;
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(dx * 0.1, tip - 0.05, dz * 0.1),
+          new THREE.Vector3(dx * 0.5, tip + 0.3, dz * 0.5),
+          new THREE.Vector3(dx * 1.1, tip + 0.5 + Math.random() * 0.2, dz * 1.1),
+          new THREE.Vector3(dx * 1.7, tip + 0.35 - Math.random() * 0.3, dz * 1.7),
+        ]);
+        ear.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.012, 4), silkMat));
+      }
+
+      // Centre the whole ear, then lean it: the tip to the upper left, the husk to the lower right.
+      const box = new THREE.Box3().setFromObject(ear);
+      const centre = box.getCenter(new THREE.Vector3());
+      ear.position.sub(centre);
+      const spin = new THREE.Group();
+      spin.add(ear);
+      const tilt = new THREE.Group();
+      tilt.add(spin);
+      tilt.rotation.set(0.3, 0, 0.52);
+      scene.add(tilt);
+      const reach = box.getSize(new THREE.Vector3()).length() / 2;
+
+      function resize() {
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (!w || !h) return;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        const vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
+        const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+        camera.position.set(0, 0, (reach / Math.sin(Math.min(vHalf, hHalf))) * 0.76);
+        camera.updateProjectionMatrix();
+      }
+      new ResizeObserver(resize).observe(canvas);
+      resize();
+
+      // Turning: a slow spin on its own, faster when dragged, easing back after.
+      const AUTO = reduce ? 0 : 0.35;
+      let angle = -0.6, velocity = AUTO, dragging = false, lastX = 0, lastT = 0;
+      canvas.addEventListener('pointerdown', e => {
+        dragging = true; lastX = e.clientX; lastT = performance.now();
+        canvas.setPointerCapture(e.pointerId);
+        canvas.classList.add('is-dragging');
+      });
+      canvas.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        const now = performance.now();
+        const step = (e.clientX - lastX) * 0.012;
+        angle += step;
+        velocity = THREE.MathUtils.clamp(step / Math.max((now - lastT) / 1000, 0.008), -12, 12);
+        lastX = e.clientX; lastT = now;
+      });
+      const release = () => { dragging = false; canvas.classList.remove('is-dragging'); };
+      canvas.addEventListener('pointerup', release);
+      canvas.addEventListener('pointercancel', release);
+
+      const clock = new THREE.Clock();
+      const start = performance.now() + (reduce ? 0 : 500);
+      let visible = true, running = false;
+      const easeOut = x => 1 - Math.pow(1 - x, 3);
+
+      function frame() {
+        if (!visible || document.hidden) { running = false; return; }
+        const dt = Math.min(clock.getDelta(), 0.05);
+        const elapsed = clock.elapsedTime;
+        if (!dragging) velocity += (AUTO - velocity) * (1 - Math.exp(-dt * 1.4));
+        angle += velocity * dt;
+        const enter = reduce ? 1 : easeOut(THREE.MathUtils.clamp((performance.now() - start) / 1400, 0, 1));
+        spin.rotation.y = angle - (1 - enter) * 2.4;
+        tilt.scale.setScalar(0.72 + 0.28 * enter);
+        tilt.position.y = reduce ? 0 : Math.sin(elapsed * 0.9) * 0.07 - (1 - enter) * 0.6;
+        renderer.render(scene, camera);
+        requestAnimationFrame(frame);
+      }
+      function wake() {
+        if (running || !visible || document.hidden) return;
+        running = true; clock.getDelta(); requestAnimationFrame(frame);
+      }
+      new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; wake(); }).observe(canvas);
+      document.addEventListener('visibilitychange', wake);
+      renderer.render(scene, camera);
+      canvas.classList.add('is-ready');
+      wake();
+    }
+
+    try { build(); } catch (err) { console.warn('3D ear not shown:', err); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Local tooling and working files
+.claude/
+.taste-skill/
+
+# Blender autosave backups
+*.blend1

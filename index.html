@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corn Land: corn, eggplant and carrot</title>
+<meta name="description" content="Three vegetables in 3D, and what each one gives you: the nutrition of corn, eggplant and carrot.">
+<meta name="theme-color" content="#c08600">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23f7c91a' d='M50 4C82 4 94 12 94 34C94 62 72 96 50 96C28 96 6 62 6 34C6 12 18 4 50 4Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@500;800&display=swap">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js">
+<link rel="preload" href="assets/models/web/corn-kernel.js" as="script">
+<style>
+  /* Registered so the whole page can fade from one vegetable's colors to the next. */
+  @property --bg { syntax: "<color>"; inherits: true; initial-value: #c08600; }
+  @property --small-ink { syntax: "<color>"; inherits: true; initial-value: #2a1a00; }
+  @property --panel { syntax: "<color>"; inherits: true; initial-value: #3a2700; }
+  :root {
+    --bg: #c08600;
+    --ink: #fff;
+    --small-ink: #2a1a00;
+    --panel: #3a2700;
+    transition: --bg 700ms cubic-bezier(0.22, 1, 0.36, 1), --small-ink 300ms, --panel 700ms;
+    --display: "Anton", Impact, "Arial Narrow", sans-serif;
+    --text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --margin: clamp(20px, 3.6vw, 56px);
+    --edge: clamp(20px, 4.6svh, 46px);
+    --word: min(24.5vw, 45svh);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--text); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  .hero { position: relative; min-height: 100svh; overflow: hidden; }
+  .stage { position: absolute; inset: 0; container-type: size; }
+
+  /* The big word sits behind the 3D, split to the margins so the model floats inside it. */
+  .word { position: absolute; left: 5.4vw; right: 5.4vw; top: calc(14.6svh - var(--word) * 0.1345); margin: 0; height: calc(var(--word) * 1.14); font: 400 var(--word) / 1.14 var(--display); color: var(--ink); text-transform: uppercase; user-select: none; pointer-events: none; }
+  .word-set { position: absolute; inset: 0; display: flex; justify-content: space-between; white-space: nowrap; }
+  .part { display: flex; }
+  .ch { display: block; overflow: hidden; }
+  .ch > span { display: block; transition: transform 800ms var(--ease-out); transition-delay: calc(var(--i) * 34ms); }
+  .is-in .ch > span { transform: translateY(104%); }
+  .is-out .ch > span { transform: translateY(-104%); transition-duration: 480ms; transition-timing-function: cubic-bezier(0.55, 0, 1, 0.45); transition-delay: calc(var(--i) * 18ms); }
+
+  .veg3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+  .veg3d.is-over-center { cursor: grab; }
+  .veg3d.is-over-side { cursor: pointer; }
+  .veg3d.is-dragging { cursor: grabbing; }
+
+  /* Stills hold each vegetable's place until its 3D arrives, and stay if WebGL can't run. */
+  .still { position: absolute; left: var(--x); top: var(--y); width: calc(var(--len) * 1cqh); height: auto; max-width: none; transform: translate(-50%, -50%) rotate(calc(var(--rot) + var(--lean))); pointer-events: none; transition: left 800ms var(--ease-out), top 800ms var(--ease-out), width 800ms var(--ease-out), transform 800ms var(--ease-out), opacity 260ms; }
+  .still.is-live { opacity: 0; }
+  .still[data-veg="corn"] { --rot: 96deg; --fill: 0.905; --big: 86; --small: 25; }
+  .still[data-veg="eggplant"] { --rot: 100.7deg; --fill: 0.78; --big: 75; --small: 33; }
+  .still[data-veg="carrot"] { --rot: 46deg; --fill: 1.25; --big: 93; --small: 42; }
+  .still[data-slot="center"] { --x: 50%; --y: 51%; --lean: -6deg; --len: calc(var(--big) * var(--big-k) / var(--fill)); }
+  .still[data-slot="left"] { --x: 31%; --y: 70%; --lean: 16deg; --len: calc(var(--small) * var(--small-k) / var(--fill)); }
+  .still[data-slot="right"] { --x: 69.5%; --y: 68%; --lean: -14deg; --len: calc(var(--small) * var(--small-k) / var(--fill)); }
+  .stage { --big-k: 1; --small-k: 1; }
+
+  .side { position: absolute; left: var(--label-x, 31%); top: var(--label-y, 90%); transform: translateX(-50%); z-index: 2; min-height: 44px; padding: 10px 14px; font: 400 clamp(19px, 1.9vw, 28px) / 1 var(--display); letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink); white-space: nowrap; transition: opacity 240ms; }
+  .side:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+  .side[data-slot="right"] { --label-x: 69.5%; }
+  .side.is-swapping { opacity: 0; }
+
+  .intro { position: absolute; z-index: 3; left: var(--margin); bottom: calc(var(--edge) + 58px + 18px); width: clamp(250px, 21vw, 340px); }
+  .intro h2 { margin: 0 0 8px; font: 800 19px / 1.2 var(--text); letter-spacing: 0.01em; text-transform: uppercase; }
+  .intro p { margin: 0; font: 500 16px / 1.46 var(--text); color: var(--small-ink); }
+  .nav { position: absolute; z-index: 3; left: var(--margin); bottom: var(--edge); display: flex; gap: 10px; }
+  .round { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; border: 2px solid var(--ink); transition: background-color 180ms, color 180ms, transform 160ms var(--ease-out); }
+  .round svg { width: 22px; height: 22px; }
+  .round:active { transform: scale(0.94); }
+  @media (hover: hover) { .round:hover { background: var(--ink); color: var(--bg); } }
+  .round.solid { background: var(--ink); color: var(--bg); }
+  @media (hover: hover) { .round.solid:hover { background: var(--panel); border-color: var(--panel); color: var(--ink); } }
+
+  .more { position: absolute; z-index: 3; right: var(--margin); bottom: var(--edge); text-align: right; }
+  .stats { display: flex; justify-content: flex-end; gap: clamp(16px, 2.2vw, 34px); margin: 0 0 12px; }
+  .stats div { display: flex; flex-direction: column-reverse; }
+  .stats dt { font: 500 15px / 1.3 var(--text); color: var(--small-ink); }
+  .stats dd { margin: 0; font: 400 clamp(24px, 2.4vw, 36px) / 1.15 var(--display); }
+  .discover { display: inline-flex; align-items: center; gap: 0.3em; min-height: 44px; font: 400 clamp(34px, 3.9vw, 60px) / 1.05 var(--display); text-transform: uppercase; }
+  .discover svg { width: 0.62em; height: 0.62em; transition: transform 240ms var(--ease-out); }
+  @media (hover: hover) { .discover:hover svg { transform: translateX(0.16em); } }
+  .discover:active svg { transform: translateX(0.08em); }
+
+  [data-copy] { transition: opacity 260ms, transform 420ms var(--ease-out); }
+  .is-swapping[data-copy] { opacity: 0; transform: translateY(8px); transition-duration: 140ms; }
+
+  /* On arrival the word rises into place and the text settles in beneath it. */
+  .is-opening .ch > span { animation: word-rise 900ms var(--ease-out) both; animation-delay: calc(var(--i) * 40ms); }
+  @keyframes word-rise { from { transform: translateY(104%); } }
+  .intro, .nav, .stats, .discover { animation: copy-in 700ms var(--ease-out) 260ms both; }
+  @keyframes copy-in { from { opacity: 0; transform: translateY(12px); } }
+
+  .panel { position: fixed; inset: 0 0 0 auto; width: min(460px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: clamp(24px, 4vw, 44px); border: 0; background: var(--panel); color: var(--ink); overflow-y: auto; }
+  .panel[open] { animation: panel-in 420ms var(--ease-out); }
+  .panel::backdrop { background: rgba(20, 12, 0, 0.42); }
+  @keyframes panel-in { from { transform: translateX(100%); } }
+  .panel-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .panel h2 { margin: 0; font: 400 clamp(72px, 9vw, 112px) / 1.05 var(--display); text-transform: uppercase; }
+  .panel .round { flex: none; }
+  @media (hover: hover) { .panel .round:hover { color: var(--panel); } }
+  .panel-note { margin: 10px 0 26px; font: 500 16px / 1.45 var(--text); }
+  .facts { margin: 0; }
+  .facts div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 9px 0; }
+  .facts dt { font: 500 16px / 1.3 var(--text); }
+  .facts dd { margin: 0; font: 400 24px / 1.15 var(--display); letter-spacing: 0.01em; white-space: nowrap; }
+  .source { margin: 26px 0 0; font: 500 15px / 1.45 var(--text); }
+  .source a { color: inherit; text-underline-offset: 0.2em; }
+
+  @media (max-width: 899px) {
+    :root { --word: 25vw; --edge: 22px; }
+    .hero { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto auto auto auto; align-items: center; gap: 0 12px; padding-bottom: var(--edge); }
+    .stage { position: relative; inset: auto; align-self: stretch; grid-column: 1 / -1; min-height: max(370px, 50svh); --big-k: 0.82; --small-k: 0.62; }
+    .word { top: 3.2svh; left: 3.6vw; right: 3.6vw; }
+    .still[data-slot="center"] { --y: 46%; }
+    .still[data-slot="left"] { --x: 16%; --y: 76%; }
+    .still[data-slot="right"] { --x: 84%; --y: 74%; }
+    .side { top: var(--label-y, 90%); font-size: 19px; }
+    .side[data-slot="left"] { --label-x: 16%; }
+    .side[data-slot="right"] { --label-x: 84%; }
+    .intro { order: 1; position: static; grid-column: 1 / -1; width: auto; margin: 14px var(--margin) 0; max-width: 640px; }
+    .more { display: contents; }
+    .stats { order: 2; grid-column: 1 / -1; justify-content: flex-start; gap: 26px; margin: 12px var(--margin) 14px; }
+    .stats div { align-items: flex-start; }
+    .nav { order: 3; position: static; margin-left: var(--margin); }
+    .discover { order: 4; justify-self: end; margin-right: var(--margin); font-size: clamp(30px, 8.6vw, 52px); }
+  }
+  @media (min-width: 900px) and (max-height: 700px) {
+    .intro p { font-size: 15px; line-height: 1.4; }
+    .stats dd { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { transition: none; }
+    .ch > span, .is-in .ch > span, .is-out .ch > span { transform: none; transition: none; }
+    .is-opening .ch > span, .intro, .nav, .stats, .discover { animation: none; }
+    .is-out { display: none; }
+    .still, [data-copy], .side { transition: none; }
+    .panel[open] { animation: none; }
+  }
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<main class="hero">
+  <div class="stage">
+    <h1 class="word" aria-label="Corn">
+      <span class="word-set is-opening" aria-hidden="true"><span class="part"><span class="ch"><span style="--i:0">C</span></span><span class="ch"><span style="--i:1">O</span></span></span><span class="part"><span class="ch"><span style="--i:2">R</span></span><span class="ch"><span style="--i:3">N</span></span></span></span>
+    </h1>
+    <img class="still" data-veg="corn" data-slot="center" src="assets/models/web/still-corn-kernel.webp" alt="" width="926" height="720">
+    <img class="still" data-veg="eggplant" data-slot="left" src="assets/models/web/still-eggplant.webp" alt="" width="1107" height="621">
+    <img class="still" data-veg="carrot" data-slot="right" src="assets/models/web/still-carrot.webp" alt="" width="966" height="966">
+    <canvas class="veg3d" role="img" aria-label="A corn kernel floating in 3D, with a smaller eggplant and carrot beside it. Drag sideways to turn it."></canvas>
+    <button class="side" data-slot="left" type="button">Eggplant</button>
+    <button class="side" data-slot="right" type="button">Carrot</button>
+  </div>
+
+  <section class="intro" aria-live="polite">
+    <h2 data-copy data-title>Corn nutrition</h2>
+    <p data-copy data-text>Sweet corn gets most of its energy from starch and natural sugar, with fiber and potassium alongside. Its gold color comes from lutein and zeaxanthin.</p>
+  </section>
+
+  <div class="nav">
+    <button class="round solid" type="button" data-step="-1" aria-label="Previous vegetable">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H4M11 5l-7 7 7 7"/></svg>
+    </button>
+    <button class="round" type="button" data-step="1" aria-label="Next vegetable">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M13 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+
+  <div class="more">
+    <dl class="stats" data-copy data-stats>
+      <div><dt>kcal per 100 g</dt><dd>86</dd></div>
+      <div><dt>fiber</dt><dd>2 g</dd></div>
+      <div><dt>potassium</dt><dd>270 mg</dd></div>
+    </dl>
+    <button class="discover" type="button" aria-haspopup="dialog">
+      Discover it
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18M14 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</main>
+
+<dialog class="panel" aria-labelledby="panel-title">
+  <div class="panel-top">
+    <h2 id="panel-title" data-panel-title>Corn</h2>
+    <button class="round" type="button" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <p class="panel-note" data-panel-note></p>
+  <dl class="facts" data-panel-facts></dl>
+  <p class="source">Per 100 g, raw. Source: <a data-panel-source href="https://fdc.nal.usda.gov/food-details/169998/nutrients" target="_blank" rel="noopener">USDA FoodData Central</a>.</p>
+</dialog>
+
+<script>
+  // Every figure below is from USDA FoodData Central, per 100 g, raw.
+  const VEG = {
+    corn: {
+      theme: { bg: '#c08600', small: '#2a1a00', panel: '#3a2700', bounce: '#f4dfae' },
+      name: 'Corn', parts: ['CO', 'RN'], title: 'Corn nutrition',
+      text: 'Sweet corn gets most of its energy from starch and natural sugar, with fiber and potassium alongside. Its gold color comes from lutein and zeaxanthin.',
+      stats: [['kcal per 100 g', '86'], ['fiber', '2 g'], ['potassium', '270 mg']],
+      note: 'The most energy and natural sugar of the three.',
+      facts: [['Calories', '86'], ['Carbohydrate', '18.7 g'], ['Sugars', '6.3 g'], ['Fiber', '2 g'], ['Protein', '3.3 g'], ['Fat', '1.4 g'], ['Potassium', '270 mg'], ['Magnesium', '37 mg'], ['Folate', '42 µg'], ['Vitamin C', '6.8 mg'], ['Lutein + zeaxanthin', '644 µg']],
+      source: 'https://fdc.nal.usda.gov/food-details/169998/nutrients',
+    },
+    eggplant: {
+      theme: { bg: '#8657cf', small: '#ffffff', panel: '#2b1650', bounce: '#dccbf2' },
+      name: 'Eggplant', parts: ['EGG', 'PLANT'], title: 'Eggplant nutrition',
+      text: 'Eggplant is about 92% water, so it is light on calories yet still gives you fiber and potassium. Its dark skin holds nasunin, an anthocyanin pigment, so keep the skin on.',
+      stats: [['kcal per 100 g', '25'], ['fiber', '3 g'], ['potassium', '229 mg']],
+      note: 'The lightest of the three, and the richest in fiber.',
+      facts: [['Calories', '25'], ['Water', '92.3 g'], ['Carbohydrate', '5.9 g'], ['Sugars', '3.5 g'], ['Fiber', '3 g'], ['Protein', '1 g'], ['Fat', '0.2 g'], ['Potassium', '229 mg'], ['Manganese', '0.23 mg'], ['Folate', '22 µg'], ['Vitamin K', '3.5 µg']],
+      source: 'https://fdc.nal.usda.gov/food-details/169228/nutrients',
+    },
+    carrot: {
+      theme: { bg: '#b0380a', small: '#ffffff', panel: '#3d1404', bounce: '#f2c7ae' },
+      name: 'Carrot', parts: ['CAR', 'ROT'], title: 'Carrot nutrition',
+      text: 'Carrots are rich in beta-carotene, the orange pigment your body turns into vitamin A. Just 100 g holds about 93% of the daily value of vitamin A, with 2.8 g of fiber.',
+      stats: [['kcal per 100 g', '41'], ['fiber', '2.8 g'], ['vitamin A', '835 µg']],
+      note: 'The richest of the three in vitamin A and potassium.',
+      facts: [['Calories', '41'], ['Water', '88.3 g'], ['Carbohydrate', '9.6 g'], ['Sugars', '4.7 g'], ['Fiber', '2.8 g'], ['Protein', '0.9 g'], ['Fat', '0.2 g'], ['Potassium', '320 mg'], ['Vitamin A', '835 µg RAE'], ['Beta-carotene', '8,285 µg'], ['Vitamin K', '13.2 µg'], ['Vitamin C', '5.9 mg']],
+      source: 'https://fdc.nal.usda.gov/food-details/170393/nutrients',
+    },
+  };
+  // Who stands where on each slide: center, then left, then right.
+  const ORDER = ['corn', 'eggplant', 'carrot'];
+  const castOf = key => { const i = ORDER.indexOf(key); return { center: key, left: ORDER[(i + 1) % 3], right: ORDER[(i + 2) % 3] }; };
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  let active = 'corn';
+
+  function buildWord(key) {
+    let n = 0;
+    const set = document.createElement('span');
+    set.className = 'word-set'; set.setAttribute('aria-hidden', 'true');
+    for (const part of VEG[key].parts) {
+      const box = document.createElement('span'); box.className = 'part';
+      for (const letter of part) {
+        const ch = document.createElement('span'), inner = document.createElement('span');
+        ch.className = 'ch'; inner.textContent = letter; inner.style.setProperty('--i', n++);
+        ch.append(inner); box.append(ch);
+      }
+      set.append(box);
+    }
+    return set;
+  }
+  function swapWord(key) {
+    const word = $('.word');
+    word.setAttribute('aria-label', VEG[key].name);
+    const old = $$('.word-set', word), fresh = buildWord(key);
+    fresh.classList.add('is-in');
+    word.append(fresh);
+    fresh.getBoundingClientRect();
+    fresh.classList.remove('is-in');
+    old.forEach(set => { set.classList.add('is-out'); setTimeout(() => set.remove(), 700); });
+  }
+  function fillCopy(key) {
+    const v = VEG[key];
+    $('[data-title]').textContent = v.title;
+    $('[data-text]').textContent = v.text;
+    $('[data-stats]').replaceChildren(...v.stats.map(([label, value]) => {
+      const row = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = label; dd.textContent = value; row.append(dt, dd); return row;
+    }));
+    $('[data-panel-title]').textContent = v.name;
+    $('[data-panel-note]').textContent = v.note;
+    $('[data-panel-source]').href = v.source;
+    $('[data-panel-facts]').replaceChildren(...v.facts.map(([label, value]) => {
+      const row = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = label; dd.textContent = value; row.append(dt, dd); return row;
+    }));
+  }
+  function placeCast(key) {
+    const cast = castOf(key);
+    $$('.still').forEach(img => { img.dataset.slot = Object.keys(cast).find(slot => cast[slot] === img.dataset.veg); });
+    $$('.side').forEach(button => {
+      button.classList.add('is-swapping');
+      setTimeout(() => { button.textContent = VEG[cast[button.dataset.slot]].name; button.classList.remove('is-swapping'); }, reduceMotion ? 0 : 420);
+    });
+    $('.veg3d').setAttribute('aria-label', `${VEG[key].name} floating in 3D, with the other two vegetables smaller beside it. Drag sideways to turn it.`);
+  }
+  function paint(key) {
+    const { bg, small, panel } = VEG[key].theme, root = document.documentElement.style;
+    root.setProperty('--bg', bg);
+    root.setProperty('--small-ink', small);
+    root.setProperty('--panel', panel);
+    $('meta[name="theme-color"]').content = bg;
+  }
+  function go(key) {
+    if (key === active) return;
+    active = key;
+    paint(key);
+    swapWord(key);
+    placeCast(key);
+    $$('[data-copy]').forEach(el => el.classList.add('is-swapping'));
+    setTimeout(() => { fillCopy(key); $$('[data-copy]').forEach(el => el.classList.remove('is-swapping')); }, reduceMotion ? 0 : 170);
+    document.dispatchEvent(new CustomEvent('veg:change', { detail: castOf(key) }));
+  }
+  const step = by => go(ORDER[(ORDER.indexOf(active) + by + 3) % 3]);
+
+  $$('[data-step]').forEach(button => button.addEventListener('click', () => step(Number(button.dataset.step))));
+  $$('.side').forEach(button => button.addEventListener('click', () => go(castOf(active)[button.dataset.slot])));
+  const panel = $('.panel');
+  $('.discover').addEventListener('click', () => panel.showModal());
+  $('[data-close]').addEventListener('click', () => panel.close());
+  panel.addEventListener('click', event => { if (event.target === panel) panel.close(); });
+  addEventListener('keydown', event => {
+    if (panel.open) return;
+    if (event.key === 'ArrowLeft') step(-1);
+    if (event.key === 'ArrowRight') step(1);
+  });
+  fillCopy('corn');
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+  const stage = document.querySelector('.stage'), canvas = document.querySelector('.veg3d');
+  const FILES = { corn: 'corn-kernel', eggplant: 'eggplant', carrot: 'carrot' };
+  // On-screen length of each vegetable, as a share of the stage height (2 = full height).
+  const SIZE = { corn: { center: 1.72, side: 0.5 }, eggplant: { center: 1.5, side: 0.66 }, carrot: { center: 1.86, side: 0.84 } };
+  const LEAN = { center: -0.1, left: 0.28, right: -0.24 };
+
+  function build() {
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(22, 1, 0.1, 40);
+    camera.position.z = 1 / Math.tan((11 * Math.PI) / 180);
+
+    // A studio painted on a sphere: one big soft box above, a pale backdrop for bright edges.
+    const studio = new THREE.Scene();
+    studio.add(new THREE.Mesh(new THREE.SphereGeometry(10, 48, 24), new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      vertexShader: 'varying vec3 d; void main() { d = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `varying vec3 d;
+        float band(float x, float a, float b, float s) { return smoothstep(a - s, a + s, x) * (1.0 - smoothstep(b - s, b + s, x)); }
+        void main() {
+          vec3 n = normalize(d), c = vec3(0.03);
+          c += vec3(1.0, 0.98, 0.96) * 6.0 * band(n.y, 0.52, 0.92, 0.08) * band(n.x, -0.72, 0.72, 0.18) * smoothstep(-0.1, 0.12, n.z);
+          c += vec3(1.0) * 1.1 * smoothstep(-0.2, -0.7, n.z);
+          c += vec3(1.0, 0.92, 0.97) * 0.45 * smoothstep(-0.35, -0.8, n.y);
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    })));
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(studio, 0.02).texture;
+    pmrem.dispose();
+    // These two light the color without adding any reflection of their own.
+    const fill = new THREE.HemisphereLight(0xffffff, VEG[active].theme.bounce, Math.PI * 0.68), bounce = new THREE.Color(VEG[active].theme.bounce);
+    scene.add(fill);
+    const key = new THREE.DirectionalLight(0xffffff, 0.45);
+    key.position.set(-0.8, 2.4, 3);
+    scene.add(key);
+
+    let cast = castOf(active), slots = {};
+    const models = {};
+    const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function layout() {
+      const w = stage.clientWidth, h = stage.clientHeight, aspect = w / h, Vw = 2 * aspect, wide = innerWidth >= 900;
+      renderer.setSize(w, h, false);
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+      slots = wide
+        ? { center: { x: 0, y: -0.02, scale: Math.min(1, Vw / 2.3) }, left: { x: (0.31 - 0.5) * Vw, y: -0.4, scale: Math.min(1, Vw / 2.9) }, right: { x: (0.695 - 0.5) * Vw, y: -0.36, scale: Math.min(1, Vw / 2.9) } }
+        : { center: { x: 0, y: 0.1, scale: Math.min(0.82, Vw / 1.75) }, left: { x: -0.34 * Vw, y: -0.46, scale: 0.62 }, right: { x: 0.34 * Vw, y: -0.42, scale: 0.62 } };
+      placeLabels();
+    }
+    function placeLabels() {
+      const h = stage.clientHeight, w = stage.clientWidth, Vw = (2 * w) / h;
+      for (const button of document.querySelectorAll('.side')) {
+        const slot = button.dataset.slot, s = slots[slot], len = SIZE[cast[slot]].side * s.scale;
+        button.style.setProperty('--label-x', `${(s.x / Vw + 0.5) * 100}%`);
+        button.style.setProperty('--label-y', `${Math.min(((0.5 - (s.y - len / 2) / 2) * h) + 4, h - 44)}px`);
+      }
+    }
+    const targetOf = veg => {
+      const slot = Object.keys(cast).find(name => cast[name] === veg), s = slots[slot], side = slot !== 'center';
+      return { slot, x: s.x, y: s.y, size: SIZE[veg][side ? 'side' : 'center'] * s.scale, lean: LEAN[slot] };
+    };
+
+    async function addVeg(veg) {
+      const file = FILES[veg];
+      await new Promise((resolve, reject) => {
+        const tag = document.createElement('script');
+        tag.src = `assets/models/web/${file}.js`; tag.onload = resolve; tag.onerror = reject;
+        document.head.append(tag);
+      });
+      const text = atob(window.GLB_DATA[file]), bytes = new Uint8Array(text.length);
+      for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
+      delete window.GLB_DATA[file];
+      const gltf = await new GLTFLoader().parseAsync(bytes.buffer, '');
+      // Without Blender's light passing through them the leaves read pale, so they sit a little deeper here.
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        if (node.material.name === 'Carrot greens') { node.material.color.setScalar(0.66); node.material.envMapIntensity = 0.5; }
+        if (node.material.name === 'Eggplant skin') node.material.envMapIntensity = 1.5;
+      });
+      // Upload textures a frame apart and compile shaders in the background, so the page never stalls.
+      const textures = new Set();
+      gltf.scene.traverse(node => {
+        if (!node.isMesh) return;
+        for (const slot of ['map', 'normalMap', 'roughnessMap', 'aoMap', 'emissiveMap', 'clearcoatMap', 'clearcoatRoughnessMap']) if (node.material[slot]) textures.add(node.material[slot]);
+      });
+      for (const texture of textures) { renderer.initTexture(texture); await new Promise(requestAnimationFrame); }
+      await renderer.compileAsync(gltf.scene, camera, scene);
+      // Stand it up: every model is built lying along x, with its tip pointing toward +x.
+      const upright = new THREE.Group(), spinner = new THREE.Group(), holder = new THREE.Group();
+      upright.rotation.z = -Math.PI / 2;
+      upright.add(gltf.scene); spinner.add(upright); holder.add(spinner);
+      scene.add(holder);
+      const t = targetOf(veg);
+      // It takes over from the still in the same place, so nothing jumps as it arrives.
+      models[veg] = { holder, spinner, x: t.x, y: t.y, lean: t.lean, size: t.size, angle: 0, spin: 0, phase: Object.keys(models).length * 2.1 };
+      document.querySelector(`.still[data-veg="${veg}"]`).classList.add('is-live');
+    }
+
+    layout();
+    new ResizeObserver(layout).observe(stage);
+    document.addEventListener('veg:change', event => { cast = event.detail; bounce.set(VEG[cast.center].theme.bounce); setTimeout(placeLabels, motion ? 420 : 0); });
+
+    // Drag to turn the center vegetable; a click on a side one brings it to the center.
+    let drag = null, over = null, pointer = { x: 0, y: 0 };
+    const slotAt = (clientX, clientY) => {
+      const box = canvas.getBoundingClientRect(), nx = clientX - box.left, ny = clientY - box.top, Vw = (2 * box.width) / box.height;
+      for (const slot of ['left', 'right', 'center']) {
+        const s = slots[slot], len = SIZE[cast[slot]][slot === 'center' ? 'center' : 'side'] * s.scale, cx = (s.x / Vw + 0.5) * box.width, cy = (0.5 - s.y / 2) * box.height, reach = (len / 2) * (box.height / 2);
+        if (Math.hypot((nx - cx) / 0.62, ny - cy) < reach) return slot;
+      }
+      return null;
+    };
+    canvas.addEventListener('pointerdown', event => {
+      const slot = slotAt(event.clientX, event.clientY);
+      drag = { x: event.clientX, start: event.clientX, side: slot === 'center' ? null : slot, moved: false };
+      canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      const box = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - box.left) / box.width) * 2 - 1;
+      pointer.y = ((event.clientY - box.top) / box.height) * 2 - 1;
+      if (!drag) {
+        over = slotAt(event.clientX, event.clientY);
+        canvas.classList.toggle('is-over-center', over === 'center');
+        canvas.classList.toggle('is-over-side', over === 'left' || over === 'right');
+        return;
+      }
+      const dx = event.clientX - drag.x, m = models[cast.center];
+      drag.x = event.clientX;
+      if (Math.abs(event.clientX - drag.start) > 5) { drag.moved = true; canvas.classList.add('is-dragging'); }
+      if (m && drag.moved) { m.angle += dx * 0.012; m.spin = dx * 0.7; }
+    });
+    const endDrag = event => {
+      if (drag && !drag.moved && drag.side) go(cast[drag.side]);
+      drag = null;
+      canvas.classList.remove('is-dragging');
+    };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', () => { drag = null; canvas.classList.remove('is-dragging'); });
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.05), t = now / 1000, follow = 1 - Math.exp(-dt * (motion ? 5.4 : 60));
+      last = now;
+      fill.groundColor.lerp(bounce, follow);
+      for (const [veg, m] of Object.entries(models)) {
+        const target = targetOf(veg), far = Math.hypot(target.x - m.x, target.y - m.y), center = target.slot === 'center';
+        m.x += (target.x - m.x) * follow; m.y += (target.y - m.y) * follow;
+        const lift = over === target.slot && !center && !drag ? 1.07 : 1;
+        m.size += (target.size * lift - m.size) * follow; m.lean += (target.lean - m.lean) * follow;
+        const bob = motion ? Math.sin(t * 0.85 + m.phase) * 0.04 * Math.max(m.size, 0.5) : 0, sway = motion ? Math.sin(t * 0.6 + m.phase) * 0.035 : 0;
+        // The one heading for the center passes in front; the one leaving passes behind.
+        m.holder.position.set(m.x, m.y + bob, Math.min(far, 1) * (center ? 0.5 : -0.5));
+        m.holder.scale.setScalar(Math.max(m.size, 0.0001));
+        m.holder.rotation.z = m.lean + sway;
+        // Rest on a slow sway around the facing side; a drag can turn it all the way round.
+        const dragging = drag && drag.moved && center;
+        if (!dragging) {
+          m.spin *= Math.exp(-dt * 3.2);
+          m.angle += m.spin * dt;
+          const rest = (motion ? Math.sin(t * 0.5 + m.phase) * (center ? 0.62 : 0.42) : 0) + Math.round(m.angle / (Math.PI * 2)) * Math.PI * 2;
+          m.angle += (rest - m.angle) * (1 - Math.exp(-dt * 1.6));
+        }
+        m.spinner.rotation.y = m.angle + (center && motion ? pointer.x * 0.1 : 0);
+        m.spinner.rotation.x = center && motion ? pointer.y * 0.05 : 0;
+      }
+      renderer.render(scene, camera);
+    }
+    renderer.setAnimationLoop(frame);
+    document.addEventListener('visibilitychange', () => { renderer.setAnimationLoop(document.hidden ? null : frame); last = performance.now(); });
+
+    // The stills hold the stage while the word and text arrive; then the 3D loads, center first.
+    setTimeout(async () => {
+      try { for (const veg of ['corn', 'eggplant', 'carrot']) await addVeg(veg); }
+      catch (error) { console.warn('3D not shown, keeping the stills:', error); }
+    }, motion ? 900 : 0);
+  }
+  try { build(); } catch (error) { console.warn('3D not shown, keeping the stills:', error); }
+</script>
+</body>
+</html>
