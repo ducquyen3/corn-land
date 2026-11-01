@@ -1,5 +1,7 @@
 # Corn Land
 
+[Live demo](https://ducquyen3.github.io/corn-land/)
+
 ![The Corn Land page on its corn slide: a large corn kernel between the letters CO and RN on an amber background, with an eggplant and a carrot beside it](docs/demo.png)
 
 A one-page website about three vegetables. Corn, eggplant and carrot float in 3D, and each one has its own background color and a short nutrition introduction.
